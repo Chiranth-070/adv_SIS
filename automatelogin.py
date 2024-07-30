@@ -11,11 +11,14 @@ def fetch_marks(usn, day, month, year):
     options = Options()
     options.add_argument("--headless")
     service = Service(executable_path="D:\\chromedriv\\chromedriver-win64\\chromedriver.exe")
-    driver = webdriver.Chrome(service=service,options=options)
+    driver = webdriver.Chrome(service=service, options=options)
     driver.get("https://parents.msrit.edu/parentseven/")
     marks_and_sub = {}
     # Initialize an empty dictionary
     result_dict = {}
+    student_name = ""
+    cgpa = 0
+    sgpa_list = []
 
     try:
         # Fill in the username
@@ -40,12 +43,31 @@ def fetch_marks(usn, day, month, year):
 
         time.sleep(2)
 
+        student_name = driver.find_element(By.XPATH, "//*[@id='page_bg']/div[1]/div/div/div[2]/div/div/div[1]/div/h3").text
         # Locate the script tag containing the chart data
         script_element = driver.find_element(By.XPATH, "//*[@id='page_bg']/div[1]/div/div/div[4]/div[1]/div/script")
 
         # Extract the JavaScript content
         script_content = script_element.get_attribute("innerHTML")
         script_content = script_content.strip()
+
+        exam_history = driver.find_element(By.XPATH,
+                                           "/html/body/div/div/div/div[1]/div/div[2]/nav/div/div/ul/li[5]/a").click()
+        # print("clicked exam history")
+        time.sleep(4)
+        cgpa = driver.find_element(By.XPATH,
+                                   "//*[@id='page_bg']/div/div/div/div[5]/div/div/div[1]/div/div[3]/div/p").text
+        sem1_sgpa = driver.find_element(By.XPATH,
+                                        "//*[@id='page_bg']/div/div/div/div[5]/div/div/div[3]/div/div/div/div/table/caption/span[3]").text
+        sem2_sgpa = driver.find_element(By.XPATH,
+                                        "//*[@id='page_bg']/div/div/div/div[5]/div/div/div[4]/div/div/div/div/table/caption/span[3]").text
+        sem3_sgpa = driver.find_element(By.XPATH,
+                                        "//*[@id='page_bg']/div/div/div/div[5]/div/div/div[5]/div/div/div/div/table/caption/span[3]").text
+        sgpa = sem1_sgpa + sem2_sgpa + sem3_sgpa
+
+        sgpa_list = regex.extract_sgpa(sgpa)
+        sgpa_list = [float(num) for num in sgpa_list]
+        cgpa = float(cgpa)
 
         # extracting each subject code and marks as array of strings
         marks_and_sub = regex.extract_marks(script_content)
@@ -57,6 +79,9 @@ def fetch_marks(usn, day, month, year):
             result_dict[code] = number  # Store in dictionary
 
         # print subjects and marks
+        for key, value in marks_and_sub:
+            if value > 50:
+                value = 50
 
 
 
@@ -67,4 +92,4 @@ def fetch_marks(usn, day, month, year):
 
     driver.quit()
     #print(type(result_dict))
-    return result_dict
+    return result_dict, student_name, cgpa, sgpa_list
